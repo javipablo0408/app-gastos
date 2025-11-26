@@ -3,14 +3,14 @@ class AppConstants {
   AppConstants._();
 
   // Base de datos
-  static const String databaseName = 'contabilidad.db';
+  static const String databaseName = 'synkbudget.db';
   static const int databaseVersion = 1;
 
   // OneDrive / Microsoft Graph
   static const String graphApiBaseUrl = 'https://graph.microsoft.com/v1.0';
   static const String authBaseUrl = 'https://login.microsoftonline.com/common/oauth2/v2.0';
-  static const String clientId = 'YOUR_CLIENT_ID'; // Configurar en .env
-  static const String redirectUri = 'msauth://com.yourapp.contabilidad/auth';
+  static const String clientId = '2e49c731-dc21-4a33-b4e9-6e2baf78df1f'; // SynkBudget Client ID
+  static const String redirectUri = 'msal2e49c731-dc21-4a33-b4e9-6e2baf78df1f://auth';
   static const List<String> scopes = [
     'Files.ReadWrite',
     'User.Read',
@@ -18,7 +18,7 @@ class AppConstants {
   ];
 
   // Archivos
-  static const String syncFileName = 'contabilidad_sync.json';
+  static const String syncFileName = 'synkbudget_sync.json';
   static const String backupFolderName = 'backups';
   static const int maxImageSize = 5 * 1024 * 1024; // 5MB
   static const int imageQuality = 85;

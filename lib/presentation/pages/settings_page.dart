@@ -202,7 +202,7 @@ class SettingsPage extends ConsumerWidget {
           ListTile(
             leading: const Icon(Icons.description),
             title: const Text('Acerca de'),
-            subtitle: const Text('App Contabilidad - Control de gastos'),
+            subtitle: const Text('SynkBudget - Control de gastos y presupuestos'),
           ),
         ],
       ),

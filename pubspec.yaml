@@ -1,5 +1,5 @@
-name: app_contabilidad
-description: App premium de control de gastos con sincronización bidireccional OneDrive
+name: synkbudget
+description: SynkBudget - Control de gastos y presupuestos con sincronización en la nube
 publish_to: 'none'
 version: 1.0.0+1
 

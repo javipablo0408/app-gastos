@@ -1,6 +1,6 @@
-# App Contabilidad - Control de Gastos Premium
+# SynkBudget - Control de Gastos y Presupuestos
 
-Aplicación Flutter profesional para control de gastos e ingresos con sincronización bidireccional con OneDrive.
+Aplicación Flutter profesional para control de gastos e ingresos con sincronización en la nube para aplicaciones móviles y de escritorio.
 
 ## 🏗️ Arquitectura
 
