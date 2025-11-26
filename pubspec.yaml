@@ -1,0 +1,109 @@
+name: app_contabilidad
+description: App premium de control de gastos con sincronización bidireccional OneDrive
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Arquitectura y Estado
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # Base de datos
+  drift: ^2.14.1
+  sqlite3_flutter_libs: ^0.5.18
+  path_provider: ^2.1.1
+  path: ^1.8.3
+
+  # Navegación
+  go_router: ^13.0.0
+
+  # UI/UX
+  fl_chart: ^0.66.0
+  google_fonts: ^6.1.0
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.0
+  shimmer: ^3.0.0
+  table_calendar: ^3.1.2
+
+  # Archivos y Media
+  image_picker: ^1.0.5
+  image: ^4.1.3
+  file_picker: ^6.1.0
+  share_plus: ^7.2.1
+  open_filex: ^4.3.2
+
+  # Exportación
+  pdf: ^3.10.7
+  excel: ^3.0.0
+  printing: ^5.12.0
+  intl: ^0.19.0
+
+  # Sincronización OneDrive
+  http: ^1.1.2
+  crypto: ^3.0.3
+  oauth2: ^2.0.2
+  url_launcher: ^6.2.2
+
+  # Utilidades
+  uuid: ^4.2.1
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  dartz: ^0.10.1
+  logger: ^2.0.2+1
+  shared_preferences: ^2.2.2
+  connectivity_plus: ^5.0.2
+  permission_handler: ^11.1.0
+  synchronized: ^3.0.0+3
+
+  # Validación
+  formz: ^0.6.1
+
+  # Animaciones
+  animations: ^2.0.8
+  lottie: ^2.7.0
+
+  # Notificaciones
+  flutter_local_notifications: ^17.0.0
+  timezone: ^0.9.2
+
+  # OCR (opcional)
+  google_mlkit_text_recognition: ^0.11.0
+
+  # Background tasks
+  workmanager: ^0.5.2
+
+  # Local authentication
+  local_auth: ^2.1.7
+
+  # CSV export
+  csv: ^6.0.0
+
+  # Testing (opcional para desarrollo)
+  mockito: ^5.4.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.7
+  drift_dev: ^2.14.1
+  riverpod_generator: ^2.3.9
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  mockito: ^5.4.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+

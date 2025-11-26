@@ -1,0 +1,793 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_contabilidad/core/providers/providers.dart';
+import 'package:app_contabilidad/data/datasources/local/database_service.dart';
+import 'package:app_contabilidad/data/datasources/local/change_log_service.dart';
+import 'package:app_contabilidad/core/utils/result.dart';
+import 'package:app_contabilidad/domain/entities/budget.dart';
+import 'package:uuid/uuid.dart';
+
+/// Estado de la lista de presupuestos
+class BudgetsState {
+  final List<Budget> budgets;
+  final bool isLoading;
+  final String? error;
+
+  BudgetsState({
+    this.budgets = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  BudgetsState copyWith({
+    List<Budget>? budgets,
+    bool? isLoading,
+    String? error,
+  }) {
+    return BudgetsState(
+      budgets: budgets ?? this.budgets,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// ViewModel para gestionar presupuestos
+class BudgetsViewModel extends StateNotifier<BudgetsState> {
+  final DatabaseService _databaseService;
+  final ChangeLogService _changeLogService;
+  final Uuid _uuid = const Uuid();
+
+  BudgetsViewModel(this._databaseService, this._changeLogService)
+      : super(BudgetsState()) {
+    loadBudgets();
+  }
+
+  /// Carga todos los presupuestos
+  Future<void> loadBudgets() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _databaseService.getAllBudgets();
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (budgets) {
+        state = state.copyWith(
+          budgets: budgets,
+          isLoading: false,
+        );
+      },
+    );
+  }
+
+  /// Crea un nuevo presupuesto
+  Future<Result<Budget>> createBudget({
+    required String categoryId,
+    required double amount,
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final budget = Budget(
+      id: _uuid.v4(),
+      categoryId: categoryId,
+      amount: amount,
+      startDate: startDate,
+      endDate: endDate,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await _databaseService.createBudget(budget);
+
+    result.fold(
+      (failure) {},
+      (createdBudget) async {
+        // Registrar en change log
+        await _changeLogService.logCreate(
+          entityType: 'budget',
+          entityId: createdBudget.id,
+        );
+        // Recargar lista
+        await loadBudgets();
+      },
+    );
+
+    return result;
+  }
+
+  /// Actualiza un presupuesto
+  Future<Result<Budget>> updateBudget(Budget budget) async {
+    final updated = budget.copyWith(updatedAt: DateTime.now());
+    final result = await _databaseService.updateBudget(updated);
+
+    result.fold(
+      (failure) {},
+      (updatedBudget) async {
+        // Registrar en change log
+        await _changeLogService.logUpdate(
+          entityType: 'budget',
+          entityId: updatedBudget.id,
+        );
+        // Recargar lista
+        await loadBudgets();
+      },
+    );
+
+    return result;
+  }
+
+  /// Elimina un presupuesto
+  Future<Result<void>> deleteBudget(String id) async {
+    final result = await _databaseService.deleteBudget(id);
+
+    result.fold(
+      (failure) {},
+      (_) async {
+        // Registrar en change log
+        await _changeLogService.logDelete(
+          entityType: 'budget',
+          entityId: id,
+        );
+        // Recargar lista
+        await loadBudgets();
+      },
+    );
+
+    return result;
+  }
+}
+
+/// Provider del ViewModel de presupuestos
+final budgetsViewModelProvider =
+    StateNotifierProvider<BudgetsViewModel, BudgetsState>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  final changeLogService = ref.watch(changeLogServiceProvider);
+  return BudgetsViewModel(databaseService, changeLogService);
+});
+
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_contabilidad/core/providers/providers.dart';
+import 'package:app_contabilidad/data/datasources/local/database_service.dart';
+import 'package:app_contabilidad/data/datasources/local/change_log_service.dart';
+import 'package:app_contabilidad/core/utils/result.dart';
+import 'package:app_contabilidad/domain/entities/category.dart';
+import 'package:uuid/uuid.dart';
+
+/// Estado de la lista de categorías
+class CategoriesState {
+  final List<Category> categories;
+  final bool isLoading;
+  final String? error;
+
+  CategoriesState({
+    this.categories = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  CategoriesState copyWith({
+    List<Category>? categories,
+    bool? isLoading,
+    String? error,
+  }) {
+    return CategoriesState(
+      categories: categories ?? this.categories,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// ViewModel para gestionar categorías
+class CategoriesViewModel extends StateNotifier<CategoriesState> {
+  final DatabaseService _databaseService;
+  final ChangeLogService _changeLogService;
+  final Uuid _uuid = const Uuid();
+
+  CategoriesViewModel(this._databaseService, this._changeLogService)
+      : super(CategoriesState()) {
+    loadCategories();
+  }
+
+  /// Carga todas las categorías
+  Future<void> loadCategories() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _databaseService.getAllCategories();
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (categories) {
+        state = state.copyWith(
+          categories: categories,
+          isLoading: false,
+        );
+      },
+    );
+  }
+
+  /// Crea una nueva categoría
+  Future<Result<Category>> createCategory({
+    required String name,
+    required String icon,
+    required String color,
+    required CategoryType type,
+  }) async {
+    final category = Category(
+      id: _uuid.v4(),
+      name: name,
+      icon: icon,
+      color: color,
+      type: type,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await _databaseService.createCategory(category);
+
+    result.fold(
+      (failure) {},
+      (createdCategory) async {
+        // Registrar en change log
+        await _changeLogService.logCreate(
+          entityType: 'category',
+          entityId: createdCategory.id,
+        );
+        // Recargar lista
+        await loadCategories();
+      },
+    );
+
+    return result;
+  }
+
+  /// Actualiza una categoría
+  Future<Result<Category>> updateCategory(Category category) async {
+    final updated = category.copyWith(updatedAt: DateTime.now());
+    final result = await _databaseService.updateCategory(updated);
+
+    result.fold(
+      (failure) {},
+      (updatedCategory) async {
+        // Registrar en change log
+        await _changeLogService.logUpdate(
+          entityType: 'category',
+          entityId: updatedCategory.id,
+        );
+        // Recargar lista
+        await loadCategories();
+      },
+    );
+
+    return result;
+  }
+
+  /// Elimina una categoría
+  Future<Result<void>> deleteCategory(String id) async {
+    final result = await _databaseService.deleteCategory(id);
+
+    result.fold(
+      (failure) {},
+      (_) async {
+        // Registrar en change log
+        await _changeLogService.logDelete(
+          entityType: 'category',
+          entityId: id,
+        );
+        // Recargar lista
+        await loadCategories();
+      },
+    );
+
+    return result;
+  }
+}
+
+/// Provider del ViewModel de categorías
+final categoriesViewModelProvider =
+    StateNotifierProvider<CategoriesViewModel, CategoriesState>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  final changeLogService = ref.watch(changeLogServiceProvider);
+  return CategoriesViewModel(databaseService, changeLogService);
+});
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_contabilidad/core/providers/providers.dart';
+import 'package:app_contabilidad/data/datasources/local/database_service.dart';
+import 'package:app_contabilidad/core/utils/result.dart';
+import 'package:app_contabilidad/domain/entities/expense.dart';
+import 'package:app_contabilidad/domain/entities/income.dart';
+import 'package:app_contabilidad/domain/entities/budget.dart';
+
+/// Estado del dashboard
+class DashboardState {
+  final double totalExpenses;
+  final double totalIncomes;
+  final double balance;
+  final List<Expense> recentExpenses;
+  final List<Income> recentIncomes;
+  final List<Budget> activeBudgets;
+  final Map<String, double> expensesByCategory;
+  final Map<String, double> incomesByCategory;
+  final bool isLoading;
+  final String? error;
+
+  DashboardState({
+    this.totalExpenses = 0.0,
+    this.totalIncomes = 0.0,
+    this.balance = 0.0,
+    this.recentExpenses = const [],
+    this.recentIncomes = const [],
+    this.activeBudgets = const [],
+    this.expensesByCategory = const {},
+    this.incomesByCategory = const {},
+    this.isLoading = false,
+    this.error,
+  });
+
+  DashboardState copyWith({
+    double? totalExpenses,
+    double? totalIncomes,
+    double? balance,
+    List<Expense>? recentExpenses,
+    List<Income>? recentIncomes,
+    List<Budget>? activeBudgets,
+    Map<String, double>? expensesByCategory,
+    Map<String, double>? incomesByCategory,
+    bool? isLoading,
+    String? error,
+  }) {
+    return DashboardState(
+      totalExpenses: totalExpenses ?? this.totalExpenses,
+      totalIncomes: totalIncomes ?? this.totalIncomes,
+      balance: balance ?? this.balance,
+      recentExpenses: recentExpenses ?? this.recentExpenses,
+      recentIncomes: recentIncomes ?? this.recentIncomes,
+      activeBudgets: activeBudgets ?? this.activeBudgets,
+      expensesByCategory: expensesByCategory ?? this.expensesByCategory,
+      incomesByCategory: incomesByCategory ?? this.incomesByCategory,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// ViewModel del dashboard
+class DashboardViewModel extends StateNotifier<DashboardState> {
+  final DatabaseService _databaseService;
+
+  DashboardViewModel(this._databaseService) : super(DashboardState()) {
+    loadDashboardData();
+  }
+
+  /// Carga todos los datos del dashboard
+  Future<void> loadDashboardData() async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    try {
+      // Obtener fecha del mes actual
+      final now = DateTime.now();
+      final startDate = DateTime(now.year, now.month, 1);
+      final endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+
+      // Cargar gastos del mes
+      final expensesResult = await _databaseService.getAllExpenses(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      // Cargar ingresos del mes
+      final incomesResult = await _databaseService.getAllIncomes(
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+      // Cargar presupuestos activos
+      final budgetsResult = await _databaseService.getAllBudgets();
+
+      if (expensesResult.isFailure || incomesResult.isFailure || budgetsResult.isFailure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: 'Error al cargar datos del dashboard',
+        );
+        return;
+      }
+
+      final expenses = (expensesResult.valueOrNull ?? []) as List<Expense>;
+      final incomes = (incomesResult.valueOrNull ?? []) as List<Income>;
+      final budgets = (budgetsResult.valueOrNull ?? []) as List<Budget>;
+
+      // Calcular totales
+      final totalExpenses = expenses.fold<double>(0, (sum, e) => sum + e.amount);
+      final totalIncomes = incomes.fold<double>(0, (sum, i) => sum + i.amount);
+      final balance = totalIncomes - totalExpenses;
+
+      // Gastos recientes (últimos 5)
+      final recentExpenses = expenses.take(5).toList();
+
+      // Ingresos recientes (últimos 5)
+      final recentIncomes = incomes.take(5).toList();
+
+      // Presupuestos activos
+      final activeBudgets = budgets.where((b) => b.isActive(now)).toList();
+
+      // Gastos por categoría
+      final expensesByCategory = <String, double>{};
+      for (final expense in expenses) {
+        final categoryName = expense.category?.name ?? 'Sin categoría';
+        expensesByCategory[categoryName] =
+            (expensesByCategory[categoryName] ?? 0) + expense.amount;
+      }
+
+      // Ingresos por categoría
+      final incomesByCategory = <String, double>{};
+      for (final income in incomes) {
+        final categoryName = income.category?.name ?? 'Sin categoría';
+        incomesByCategory[categoryName] =
+            (incomesByCategory[categoryName] ?? 0) + income.amount;
+      }
+
+      state = state.copyWith(
+        totalExpenses: totalExpenses,
+        totalIncomes: totalIncomes,
+        balance: balance,
+        recentExpenses: recentExpenses,
+        recentIncomes: recentIncomes,
+        activeBudgets: activeBudgets,
+        expensesByCategory: expensesByCategory,
+        incomesByCategory: incomesByCategory,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: 'Error inesperado: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Refresca los datos del dashboard
+  Future<void> refresh() async {
+    await loadDashboardData();
+  }
+}
+
+/// Provider del ViewModel del dashboard
+final dashboardViewModelProvider =
+    StateNotifierProvider<DashboardViewModel, DashboardState>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  return DashboardViewModel(databaseService);
+});
+
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_contabilidad/core/providers/providers.dart';
+import 'package:app_contabilidad/data/datasources/local/database_service.dart';
+import 'package:app_contabilidad/data/datasources/local/change_log_service.dart';
+import 'package:app_contabilidad/core/utils/result.dart';
+import 'package:app_contabilidad/domain/entities/expense.dart';
+import 'package:uuid/uuid.dart';
+
+/// Estado de la lista de gastos
+class ExpensesState {
+  final List<Expense> expenses;
+  final bool isLoading;
+  final String? error;
+
+  ExpensesState({
+    this.expenses = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  ExpensesState copyWith({
+    List<Expense>? expenses,
+    bool? isLoading,
+    String? error,
+  }) {
+    return ExpensesState(
+      expenses: expenses ?? this.expenses,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// ViewModel para gestionar gastos
+class ExpensesViewModel extends StateNotifier<ExpensesState> {
+  final DatabaseService _databaseService;
+  final ChangeLogService _changeLogService;
+  final Uuid _uuid = const Uuid();
+
+  ExpensesViewModel(this._databaseService, this._changeLogService)
+      : super(ExpensesState()) {
+    loadExpenses();
+  }
+
+  /// Carga todos los gastos
+  Future<void> loadExpenses({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _databaseService.getAllExpenses(
+      startDate: startDate,
+      endDate: endDate,
+      categoryId: categoryId,
+    );
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (expenses) {
+        state = state.copyWith(
+          expenses: expenses,
+          isLoading: false,
+        );
+      },
+    );
+  }
+
+  /// Crea un nuevo gasto
+  Future<Result<Expense>> createExpense({
+    required double amount,
+    required String description,
+    required String categoryId,
+    required DateTime date,
+    String? receiptImagePath,
+  }) async {
+    final expense = Expense(
+      id: _uuid.v4(),
+      amount: amount,
+      description: description,
+      categoryId: categoryId,
+      date: date,
+      receiptImagePath: receiptImagePath,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await _databaseService.createExpense(expense);
+
+    result.fold(
+      (failure) {},
+      (createdExpense) async {
+        // Registrar en change log
+        await _changeLogService.logCreate(
+          entityType: 'expense',
+          entityId: createdExpense.id,
+        );
+        // Recargar lista
+        await loadExpenses();
+      },
+    );
+
+    return result;
+  }
+
+  /// Actualiza un gasto
+  Future<Result<Expense>> updateExpense(Expense expense) async {
+    final updated = expense.copyWith(updatedAt: DateTime.now());
+    final result = await _databaseService.updateExpense(updated);
+
+    result.fold(
+      (failure) {},
+      (updatedExpense) async {
+        // Registrar en change log
+        await _changeLogService.logUpdate(
+          entityType: 'expense',
+          entityId: updatedExpense.id,
+        );
+        // Recargar lista
+        await loadExpenses();
+      },
+    );
+
+    return result;
+  }
+
+  /// Elimina un gasto
+  Future<Result<void>> deleteExpense(String id) async {
+    final result = await _databaseService.deleteExpense(id);
+
+    result.fold(
+      (failure) {},
+      (_) async {
+        // Registrar en change log
+        await _changeLogService.logDelete(
+          entityType: 'expense',
+          entityId: id,
+        );
+        // Recargar lista
+        await loadExpenses();
+      },
+    );
+
+    return result;
+  }
+}
+
+/// Provider del ViewModel de gastos
+final expensesViewModelProvider =
+    StateNotifierProvider<ExpensesViewModel, ExpensesState>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  final changeLogService = ref.watch(changeLogServiceProvider);
+  return ExpensesViewModel(databaseService, changeLogService);
+});
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app_contabilidad/core/providers/providers.dart';
+import 'package:app_contabilidad/data/datasources/local/database_service.dart';
+import 'package:app_contabilidad/data/datasources/local/change_log_service.dart';
+import 'package:app_contabilidad/core/utils/result.dart';
+import 'package:app_contabilidad/domain/entities/income.dart';
+import 'package:uuid/uuid.dart';
+
+/// Estado de la lista de ingresos
+class IncomesState {
+  final List<Income> incomes;
+  final bool isLoading;
+  final String? error;
+
+  IncomesState({
+    this.incomes = const [],
+    this.isLoading = false,
+    this.error,
+  });
+
+  IncomesState copyWith({
+    List<Income>? incomes,
+    bool? isLoading,
+    String? error,
+  }) {
+    return IncomesState(
+      incomes: incomes ?? this.incomes,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// ViewModel para gestionar ingresos
+class IncomesViewModel extends StateNotifier<IncomesState> {
+  final DatabaseService _databaseService;
+  final ChangeLogService _changeLogService;
+  final Uuid _uuid = const Uuid();
+
+  IncomesViewModel(this._databaseService, this._changeLogService)
+      : super(IncomesState()) {
+    loadIncomes();
+  }
+
+  /// Carga todos los ingresos
+  Future<void> loadIncomes({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? categoryId,
+  }) async {
+    state = state.copyWith(isLoading: true, error: null);
+
+    final result = await _databaseService.getAllIncomes(
+      startDate: startDate,
+      endDate: endDate,
+      categoryId: categoryId,
+    );
+
+    result.fold(
+      (failure) {
+        state = state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        );
+      },
+      (incomes) {
+        state = state.copyWith(
+          incomes: incomes,
+          isLoading: false,
+        );
+      },
+    );
+  }
+
+  /// Crea un nuevo ingreso
+  Future<Result<Income>> createIncome({
+    required double amount,
+    required String description,
+    required String categoryId,
+    required DateTime date,
+  }) async {
+    final income = Income(
+      id: _uuid.v4(),
+      amount: amount,
+      description: description,
+      categoryId: categoryId,
+      date: date,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
+    final result = await _databaseService.createIncome(income);
+
+    result.fold(
+      (failure) {},
+      (createdIncome) async {
+        // Registrar en change log
+        await _changeLogService.logCreate(
+          entityType: 'income',
+          entityId: createdIncome.id,
+        );
+        // Recargar lista
+        await loadIncomes();
+      },
+    );
+
+    return result;
+  }
+
+  /// Actualiza un ingreso
+  Future<Result<Income>> updateIncome(Income income) async {
+    final updated = income.copyWith(updatedAt: DateTime.now());
+    final result = await _databaseService.updateIncome(updated);
+
+    result.fold(
+      (failure) {},
+      (updatedIncome) async {
+        // Registrar en change log
+        await _changeLogService.logUpdate(
+          entityType: 'income',
+          entityId: updatedIncome.id,
+        );
+        // Recargar lista
+        await loadIncomes();
+      },
+    );
+
+    return result;
+  }
+
+  /// Elimina un ingreso
+  Future<Result<void>> deleteIncome(String id) async {
+    final result = await _databaseService.deleteIncome(id);
+
+    result.fold(
+      (failure) {},
+      (_) async {
+        // Registrar en change log
+        await _changeLogService.logDelete(
+          entityType: 'income',
+          entityId: id,
+        );
+        // Recargar lista
+        await loadIncomes();
+      },
+    );
+
+    return result;
+  }
+}
+
+/// Provider del ViewModel de ingresos
+final incomesViewModelProvider =
+    StateNotifierProvider<IncomesViewModel, IncomesState>((ref) {
+  final databaseService = ref.watch(databaseServiceProvider);
+  final changeLogService = ref.watch(changeLogServiceProvider);
+  return IncomesViewModel(databaseService, changeLogService);
+});
+
+
